@@ -39,7 +39,6 @@ const char index_html[] PROGMEM = R"rawliteral(
           document.getElementById("conf").innerText = data.conf + "%";
           document.getElementById("bar").style.width = data.conf + "%";
           
-          // Đổi màu nếu độ tin cậy thấp
           let color = (data.conf > 70) ? "#28a745" : "#ffc107";
           document.getElementById("bar").style.backgroundColor = color;
         })
