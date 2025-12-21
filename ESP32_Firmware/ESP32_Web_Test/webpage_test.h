@@ -24,7 +24,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       display: flex; height: 100vh; overflow: hidden;
     }
 
-    /* --- CỘT TRÁI: CAMERA SCANNER --- */
+    /*Khung camera bên trái */
     .left-panel {
       flex: 6; 
       background: #000;
@@ -36,7 +36,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     
     .cam-view { width: 100%; height: 100%; object-fit: contain; display: none; }
 
-    /* Hiệu ứng Scanning khi chưa có Cam */
     .scanner-overlay {
       position: absolute; width: 100%; height: 100%;
       background: linear-gradient(to bottom, transparent 50%, rgba(0, 240, 255, 0.1) 51%, transparent 52%);
@@ -53,7 +52,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
     @keyframes scan { 0% {background-position: 0% 0%;} 100% {background-position: 0% 100%;} }
 
-    /* --- CỘT PHẢI: CONTROL PANEL --- */
+    /*output bên phải*/
     .right-panel {
       flex: 4; 
       background-color: var(--panel-color);
@@ -75,7 +74,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       animation: pulse 2s infinite;
     }
 
-    /* Ô hiển thị kết quả AI */
     .live-box {
       background: #0d1117; border: 1px solid #30363d;
       border-radius: 12px; padding: 20px; text-align: center;
@@ -89,7 +87,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     .conf-bar-bg { width: 100%; height: 6px; background: #30363d; border-radius: 3px; margin-top: 10px; }
     .conf-bar-fill { height: 100%; background: var(--accent-color); width: 0%; border-radius: 3px; transition: width 0.3s; box-shadow: 0 0 10px var(--accent-color); }
 
-    /* Ô Văn bản */
     .text-area {
       flex-grow: 1; background: #0d1117;
       border: 1px solid #30363d; border-radius: 8px;
@@ -100,7 +97,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
     .cursor { display: inline-block; width: 10px; height: 20px; background: var(--accent-color); animation: blink 1s infinite; vertical-align: bottom;}
 
-    /* Terminal Log (Lịch sử) */
     .log-box {
       height: 100px; background: black; color: #00ff00;
       font-size: 12px; padding: 10px; overflow-y: hidden;
@@ -108,7 +104,6 @@ const char index_html[] PROGMEM = R"rawliteral(
       font-family: 'Courier New', Courier, monospace;
     }
 
-    /* Nút bấm */
     .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .btn {
       padding: 12px; border: none; border-radius: 5px;
@@ -123,8 +118,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
     @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
-    
-    /* Mobile Responsive */
+
     @media (max-width: 768px) {
       body { flex-direction: column; height: auto; overflow: auto; }
       .left-panel { height: 300px; flex: none; width: 100%; border-right: none; border-bottom: 2px solid #30363d;}
