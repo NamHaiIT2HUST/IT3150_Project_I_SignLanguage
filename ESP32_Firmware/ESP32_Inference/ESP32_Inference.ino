@@ -64,7 +64,6 @@ WebServer server(80);
 String currentPred = "Waiting";
 String currentConf = "0";
 
-// TFLite Globals
 namespace {
   tflite::ErrorReporter* error_reporter = nullptr;
   const tflite::Model* model = nullptr;
@@ -74,7 +73,6 @@ namespace {
   uint8_t tensor_arena[K_ARENA_SIZE];
 }
 
-// Khởi tạo camera
 void initCamera() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -96,8 +94,8 @@ void initCamera() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_GRAYSCALE; // Ảnh xám
-  config.frame_size = FRAMESIZE_96X96;       // Kích thước 96x96
+  config.pixel_format = PIXFORMAT_GRAYSCALE; //Ảnh xám
+  config.frame_size = FRAMESIZE_96X96;       //Kích thước 96x96
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.jpeg_quality = 12;
@@ -117,14 +115,13 @@ void initCamera() {
 void setup() {
   Serial.begin(115200);
   
-  // 1. Kết nối WiFi
+  //Kết nối WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500); Serial.print(".");
   }
   Serial.println("\nWiFi Connected: " + WiFi.localIP().toString());
 
-  // 2. Setup WebServer
   server.on("/", []() { server.send(200, "text/html", index_html); });
   server.on("/status", []() {
     String json = "{\"pred\":\"" + currentPred + "\", \"conf\":\"" + currentConf + "\"}";
@@ -132,12 +129,9 @@ void setup() {
   });
   server.begin();
 
-  // 3. Setup Camera
   initCamera();
 
-  // 4. Setup TFLite AI
-  // static tflite::MicroErrorReporter micro_error_reporter;
-  error_reporter = nullptr; // (Tắt báo lỗi debug)
+  error_reporter = nullptr;
 /*
   model = tflite::GetModel(model_data);
   if (model->version() != TFLITE_SCHEMA_VERSION) {
@@ -167,9 +161,8 @@ void setup() {
 }
 
 void loop() {
-  server.handleClient(); //Xử lý Web liên tục
+  server.handleClient(); 
 
-  //Chụp ảnh và dự đoán
   camera_fb_t * fb = esp_camera_fb_get();
   if (!fb) return;
 
@@ -196,7 +189,6 @@ void loop() {
 
   float confidence = ((max_score + 128) / 255.0) * 100;
 
-//Update lên web
   currentPred = CLASSES[max_index];
   currentConf = String(confidence, 1);
   
