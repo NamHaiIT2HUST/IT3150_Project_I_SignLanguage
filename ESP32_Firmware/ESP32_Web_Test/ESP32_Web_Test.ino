@@ -29,9 +29,8 @@ void setup() {
     server.send(200, "text/html", index_html);
   });
 
-  // 3. Cài đặt API lấy dữ liệu (/status)
+  //Cài đặt API lấy dữ liệu (/status)
   server.on("/status", []() {
-    // Tạo chuỗi JSON: {"pred": "A", "conf": "98"}
     String json = "{\"pred\":\"" + currentPred + "\", \"conf\":\"" + currentConf + "\"}";
     server.send(200, "application/json", json);
   });
@@ -40,22 +39,18 @@ void setup() {
   Serial.println("Web Server da san sang!");
 }
 
-// --- HÀM LOOP (CHẠY LIÊN TỤC) ---
 void loop() {
-  server.handleClient(); // Xử lý các yêu cầu từ điện thoại/web
+  server.handleClient(); 
 
-  // --- PHẦN GIẢ LẬP DỮ LIỆU (MOCKING) ---
-  // Cứ 3 giây thì tự đổi kết quả 1 lần để test giao diện
   static unsigned long lastTime = 0;
   if (millis() - lastTime > 3000) {
     lastTime = millis();
-    
-    // Random ngẫu nhiên 0, 1, hoặc 2
+
     int randNumber = random(3);
     
     if (randNumber == 0) {
       currentPred = "A";
-      currentConf = String(random(85, 100)); // Random độ tin cậy từ 85-99%
+      currentConf = String(random(85, 100)); 
       Serial.println("AI gia lap: Phat hien chu A");
     } 
     else if (randNumber == 1) {
