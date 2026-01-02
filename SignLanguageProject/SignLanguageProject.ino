@@ -1,3 +1,5 @@
+#define EI_CLASSIFIER_ALLOCATION_HEAP 1
+
 const char* ssid = "Tang3";   
 const char* password = "23092005";  
 
