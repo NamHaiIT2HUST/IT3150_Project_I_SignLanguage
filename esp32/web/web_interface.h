@@ -202,7 +202,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
 
   <div class="container">
-    <h1>Sign Language AI</h1>
+    <h1>Hệ thống nhận dạng ngôn ngữ ký hiệu</h1>
     
     <div class="content-grid">
       <div class="left-panel">
