@@ -1,234 +1,265 @@
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Language Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <title>Hệ thống nhận diện ngôn ngữ ký hiệu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg-color: #f4f6f9;       /* Nền sáng nhẹ */
-      --card-bg: #ffffff;        /* Nền thẻ trắng */
-      --primary: #2563eb;        /* Xanh dương hiện đại */
-      --danger: #ef4444;         /* Đỏ */
-      --success: #22c55e;        /* Xanh lá */
-      --text-dark: #1e293b;
-      --text-gray: #64748b;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background-color: var(--bg-color);
-      color: var(--text-dark);
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      overflow: hidden; /* Cấm cuộn tuyệt đối */
+      padding: 10px; /* Giảm padding body chút */
       display: flex;
       justify-content: center;
-      min-height: 100vh;
+      align-items: center;
     }
 
     .container {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr; /* Chia cột: Trái lớn, Phải nhỏ hơn */
-      gap: 25px;
       width: 100%;
-      max-width: 1200px;
-    }
-
-    /* --- CỘT TRÁI: CAMERA & BẢNG TRA CỨU --- */
-    .left-column {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .video-card {
-      background: var(--card-bg);
-      padding: 15px;
-      border-radius: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      text-align: center;
-    }
-
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-gray);
-      margin-bottom: 10px;
-      text-align: left;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    img#video {
-      width: 100%;
-      border-radius: 12px;
-      border: 2px solid #e2e8f0;
-    }
-
-    .cheat-sheet-card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Ảnh bảng chữ cái mẫu (Link online) */
-    .cheat-sheet-img {
-      width: 100%;
-      border-radius: 8px;
-    }
-
-    /* --- CỘT PHẢI: KẾT QUẢ & ĐIỀU KHIỂN --- */
-    .right-column {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .control-card {
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
+      max-width: 1400px;
       height: 100%;
-    }
-
-    /* Đồng hồ đếm ngược */
-    .timer-ring {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin-bottom: 20px;
-    }
-    
-    .timer-svg { transform: rotate(-90deg); }
-    .timer-circle-bg { fill: none; stroke: #e2e8f0; stroke-width: 8; }
-    .timer-circle-fg { fill: none; stroke: var(--primary); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
-    .timer-text {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 2rem; font-weight: 800; color: var(--text-dark);
-    }
-
-    /* Kết quả nhận diện */
-    .result-box {
-      margin-bottom: 30px;
-    }
-    .big-letter {
-      font-size: 6rem;
-      font-weight: 800;
-      color: var(--primary);
-      line-height: 1;
-    }
-    .label-desc { font-size: 0.9rem; color: var(--text-gray); margin-top: 5px; }
-
-    /* Lịch sử */
-    .history-area {
-      width: 100%;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 15px;
       padding: 15px;
-      min-height: 80px;
-      margin-bottom: 20px;
-      text-align: left;
-      font-family: monospace;
-      font-size: 1.2rem;
-      color: #334155;
-      word-wrap: break-word;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* Quan trọng: Cắt mọi thứ thừa ra */
     }
 
-    /* Nút bấm */
-    .btn-group { display: flex; gap: 10px; width: 100%; }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem; /* Giảm font tiêu đề chút cho gọn */
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* BỐ CỤC CHÍNH */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 15px;
+      flex: 1; /* Chiếm toàn bộ phần còn lại */
+      min-height: 0; /* QUAN TRỌNG: Cho phép co nhỏ hơn nội dung */
+      overflow: hidden;
+    }
+
+    /* CỘT TRÁI */
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      min-height: 0; /* QUAN TRỌNG */
+      overflow: hidden;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      display: flex; 
+      flex-direction: column;
+      min-height: 0; /* QUAN TRỌNG */
+    }
+
+    .card-title {
+      font-size: 0.85rem; font-weight: 700; color: #555;
+      margin-bottom: 5px; text-transform: uppercase;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+
+    .camera-section {
+      flex: 1.2; /* Camera ưu tiên lớn hơn bảng ký tự một chút */
+      display: flex; flex-direction: column;
+    }
+
+    .cheatsheet-section {
+      flex: 0.8;
+      display: flex; flex-direction: column;
+    }
+
+    .video-wrapper, .cheat-sheet-wrapper {
+      flex: 1; 
+      width: 100%; 
+      height: 100%;
+      border-radius: 8px; 
+      overflow: hidden;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      background: #00000010; /* Màu nền nhẹ để thấy khung */
+      min-height: 0;
+    }
+
+    img#video, .cheat-sheet-img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+      display: block; /* Xóa khoảng trắng dưới ảnh */
+    }
+
+    /* CỘT PHẢI */
+    .right-panel {
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      padding: 15px;
+      display: flex; flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .timer-ring { 
+      position: relative; width: 80px; height: 80px; /* Thu nhỏ đồng hồ chút */
+      flex-shrink: 0; margin-bottom: 10px;
+    }
+    .timer-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .timer-bg { fill: none; stroke: #ddd; stroke-width: 7; }
+    .timer-fg { 
+      fill: none; stroke: #667eea; stroke-width: 7; stroke-linecap: round; 
+      transition: stroke-dashoffset 1s linear;
+    }
+    .timer-text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 1.8rem; font-weight: 700; color: #444;
+    }
+
+    .result-area { text-align: center; flex-shrink: 0; margin-bottom: 5px; }
+    .label-small { font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase; }
+    .big-letter {
+      font-size: 4rem; font-weight: 800; line-height: 1;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .history-box {
+      width: 100%;
+      flex: 1; /* Tự co giãn */
+      min-height: 0; /* Cho phép co nhỏ lại nếu màn hình thấp */
+      margin: 10px 0;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 10px; padding: 10px;
+      border-left: 4px solid #667eea;
+      font-family: 'Courier New', monospace; font-size: 1rem; color: #333;
+      overflow-y: auto; 
+    }
+
+    .button-group { 
+      display: flex; gap: 8px; width: 100%; 
+      flex-shrink: 0; 
+      margin-top: 5px;
+    }
     
     button {
-      flex: 1;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
+      flex: 1; padding: 10px; border: none; border-radius: 10px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all 0.3s ease; position: relative; overflow: hidden;
+      color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      white-space: nowrap;
+    }
+    button:hover { transform: translateY(-2px); }
+    .btn-start { background: linear-gradient(45deg, #4CAF50, #45a049); }
+    .btn-stop { background: linear-gradient(45deg, #f44336, #da190b); display: none; }
+    .btn-clear { background: linear-gradient(45deg, #FF9800, #e68900); flex: 0.6; }
+
+    .badge-live {
+      background: #f44336; color: white; padding: 2px 6px;
+      border-radius: 6px; font-size: 0.65rem; animation: pulse 1.5s infinite;
+      vertical-align: middle;
     }
 
-    .btn-start { background-color: var(--primary); color: white; }
-    .btn-start:hover { background-color: #1d4ed8; }
-    .btn-start.active { background-color: var(--danger); } /* Đổi màu khi đang chạy */
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-    .btn-clear { background-color: #e2e8f0; color: var(--text-dark); }
-    .btn-clear:hover { background-color: #cbd5e1; }
-
-    /* Responsive mobile */
-    @media (max-width: 768px) {
-      .container { grid-template-columns: 1fr; }
-      .left-column { order: 2; } /* Đẩy camera xuống dưới trên mobile */
-      .right-column { order: 1; }
+    /* Mobile Responsive: Vẫn cho cuộn nếu màn hình quá nhỏ */
+    @media (max-width: 800px) {
+      body { height: auto; overflow: auto; display: block; }
+      .container { height: auto; overflow: visible; }
+      .content-grid { grid-template-columns: 1fr; overflow: visible; }
+      .left-panel { height: auto; }
+      .camera-section, .cheatsheet-section { height: 300px; flex: none; }
+      .right-panel { height: auto; }
     }
   </style>
 </head>
 <body>
 
   <div class="container">
+    <h1>Sign Language AI</h1>
     
-    <div class="left-column">
-      <div class="video-card">
-        <div class="section-title">📷 Camera Live Feed</div>
-        <img id="video" src="http://192.168.1.70:5000/video" alt="Video Feed">
+    <div class="content-grid">
+      <div class="left-panel">
+        
+        <div class="card camera-section">
+          <div class="card-title">
+            <span>📹 Camera</span>
+            <span class="badge-live">Check tại đây</span>
+          </div>
+          <div class="video-wrapper">
+            <img id="video" src="http://192.168.1.70:5000/video" alt="Đang kết nối camera...">
+          </div>
+        </div>
+
+        <div class="card cheatsheet-section">
+          <div class="card-title">📖 Bảng Ký Hiệu (A-Z)</div>
+          <div class="cheat-sheet-wrapper">
+            <img src="http://192.168.1.70:5000/static/asl_table_left_hand.jpg" class="cheat-sheet-img" alt="Bảng mẫu">
+          </div>
+        </div>
       </div>
 
-      <div class="cheat-sheet-card">
-        <div class="section-title">📖 Bảng Ký Hiệu Mẫu (A-Z)</div>
-        <img src="http://192.168.1.70:5000/static/asl_table_left_hand.jpg" class="cheat-sheet-img" alt="Bảng ký hiệu">
-      </div>
-    </div>
-
-    <div class="right-column">
-      <div class="control-card">
+      <div class="right-panel">
         
         <div class="timer-ring">
-          <svg class="timer-svg" width="120" height="120">
-            <circle class="timer-circle-bg" cx="60" cy="60" r="50"></circle>
-            <circle class="timer-circle-fg" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="0"></circle>
+          <svg class="timer-svg" viewBox="0 0 100 100">
+            <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="timer-fg" cx="50" cy="50" r="45" stroke-dasharray="282.7" stroke-dashoffset="0"></circle>
           </svg>
           <div class="timer-text" id="timer-display">5</div>
         </div>
 
-        <div class="result-box">
-          <div class="label-desc">Ký tự nhận diện</div>
+        <div class="result-area">
+          <div class="label-small">Ký Tự Nhận Diện</div>
           <div class="big-letter" id="live-char">--</div>
         </div>
 
-        <div class="section-title" style="width:100%">📝 Văn bản đã tạo:</div>
-        <div class="history-area" id="history-text"></div>
+        <div class="history-box" id="history-box">
+          <span id="history-text"></span><span style="animation:pulse 1s infinite; font-weight:bold;">|</span>
+        </div>
 
-        <div class="btn-group">
-          <button class="btn-start" id="btn-toggle" onclick="toggleSystem()">▶ BẮT ĐẦU</button>
+        <div class="button-group">
+          <button id="btn-start" class="btn-start" onclick="startSystem()">▶ Start</button>
+          <button id="btn-stop" class="btn-stop" onclick="stopSystem()">⏹ Stop</button>
           <button class="btn-clear" onclick="clearHistory()">🗑 Xóa</button>
         </div>
 
       </div>
     </div>
-
   </div>
 
   <script>
-    let timeLeft = 5;
-    let maxTime = 5;
-    let isRunning = false; // Trạng thái: false = dừng, true = chạy
-    let currentDetect = "";
-    let historyStr = "";
+    let timeLeft = 5; let maxTime = 5; let isRunning = false;
+    let currentDetect = ""; let historyStr = "";
 
-    // Cập nhật vòng tròn Timer
-    const circle = document.querySelector('.timer-circle-fg');
-    const radius = circle.r.baseVal.value;
-    const circumference = radius * 2 * Math.PI;
+    const circle = document.querySelector('.timer-fg');
+    const circumference = 282.7;
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
 
     function setProgress(percent) {
@@ -236,72 +267,56 @@ const char index_html[] PROGMEM = R"rawliteral(
       circle.style.strokeDashoffset = offset;
     }
 
-    // 1. Logic Nút Bấm START / STOP
-    function toggleSystem() {
-      const btn = document.getElementById("btn-toggle");
-      isRunning = !isRunning;
-
-      if (isRunning) {
-        // Chuyển sang trạng thái chạy
-        btn.innerText = "⏹ DỪNG LẠI";
-        btn.classList.add("active");
-        timeLeft = 5; // Reset timer
-        setProgress(100);
-      } else {
-        // Chuyển sang trạng thái dừng
-        btn.innerText = "▶ BẮT ĐẦU";
-        btn.classList.remove("active");
-        // Reset hiển thị về mặc định
-        document.getElementById("timer-display").innerText = "5";
-        setProgress(0); 
-      }
+    function startSystem() {
+      isRunning = true;
+      document.getElementById("btn-start").style.display = "none";
+      document.getElementById("btn-stop").style.display = "block";
+      
+      timeLeft = 5; setProgress(100);
+      document.querySelector('.timer-fg').style.stroke = "#f44336"; 
     }
 
-    // 2. Nhận dữ liệu từ ESP32 (Liên tục chạy ngầm để cập nhật Live Char)
+    function stopSystem() {
+      isRunning = false;
+      document.getElementById("btn-start").style.display = "block";
+      document.getElementById("btn-stop").style.display = "none";
+      
+      document.getElementById("timer-display").innerText = "5"; setProgress(0);
+      document.querySelector('.timer-fg').style.stroke = "#667eea";
+      document.getElementById("live-char").innerText = "--";
+    }
+
     setInterval(() => {
-      fetch('/get')
-        .then(res => res.text())
-        .then(data => {
-          currentDetect = data;
-          // Chỉ hiện chữ cái to lên màn hình, chưa chốt vào lịch sử
-          if(data === "?" || data === "") {
-             document.getElementById("live-char").innerText = "--";
-             document.getElementById("live-char").style.color = "#ccc";
-          } else {
-             document.getElementById("live-char").innerText = data;
-             document.getElementById("live-char").style.color = "#2563eb";
-          }
-        })
-        .catch(e => console.log("Waiting connection..."));
+      // Giả lập gọi API (Trong thực tế ESP32 sẽ trả về text)
+      fetch('/get').then(res => res.text()).then(data => {
+        currentDetect = data;
+        const charEl = document.getElementById("live-char");
+        if(isRunning) {
+           charEl.innerText = (data === "?" || data === "") ? "--" : data;
+        }
+      }).catch(e => console.log("Waiting..."));
     }, 300);
 
-    // 3. Logic Đếm Ngược (Chỉ chạy khi isRunning = true)
     setInterval(() => {
-      if (!isRunning) return; // Nếu chưa bấm Start thì không làm gì cả
-
+      if (!isRunning) return;
       timeLeft--;
       document.getElementById("timer-display").innerText = timeLeft;
-      
-      // Cập nhật vòng tròn
-      let percent = (timeLeft / maxTime) * 100;
-      setProgress(percent);
+      setProgress((timeLeft / maxTime) * 100);
 
       if (timeLeft <= 0) {
-        // HẾT GIỜ: Chốt chữ cái
         if (currentDetect !== "?" && currentDetect !== "" && currentDetect !== "--") {
           historyStr += currentDetect;
           document.getElementById("history-text").innerText = historyStr;
+          const box = document.getElementById("history-box");
+          box.scrollTop = box.scrollHeight;
         }
-        
-        // Reset vòng lặp mới
-        timeLeft = 5;
-        setProgress(100);
+        timeLeft = 5; setProgress(100);
       }
     }, 1000);
 
-    function clearHistory() {
-      historyStr = "";
-      document.getElementById("history-text").innerText = "";
+    function clearHistory() { 
+      historyStr = ""; 
+      document.getElementById("history-text").innerText = ""; 
     }
   </script>
 </body>
