@@ -57,3 +57,12 @@ IT3150_PROJECT_I_SIGNLANGUAGE/
 ├── requirements.txt            # Danh sách thư viện Python
 └── README.md                   # Tài liệu hướng dẫn này
 ```
+
+## ⚙️ Hướng dẫn cài đặt (Installation)
+
+### 1. Thiết lập môi trường trên PC
+Cài đặt các thư viện Python cần thiết:
+```bash
+pip install tensorflow opencv-python flask numpy matplotlib seaborn scikit-learn
+```
+
