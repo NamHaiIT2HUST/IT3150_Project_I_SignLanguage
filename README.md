@@ -1,10 +1,10 @@
 # 🤟 Hệ thống Nhận diện Ngôn ngữ Ký hiệu (Sign Language Recognition System)
 
-> **Đồ án I - Kỹ thuật Máy tính - Đại học Bách Khoa Hà Nội (HUST)**
+> **PROJECT I - Kỹ thuật Máy tính_03 K68 - Đại học Bách Khoa Hà Nội (HUST)**
 >
 > **Sinh viên:** Nguyễn Đào Nam Hải
 > **MSSV:** 20235321
-> **Lớp:** IT3150
+> **Lớp:** 755566
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=flat&logo=python)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg?style=flat&logo=tensorflow)
@@ -17,7 +17,7 @@ Dự án này xây dựng một hệ thống **AI + IoT** hỗ trợ giao tiếp
 
 Mục tiêu là tạo ra một thiết bị hiển thị nhỏ gọn, giao diện thân thiện, giúp chuyển đổi cử chỉ tay thành văn bản ngay lập tức.
 
-![Giao diện hệ thống](/pc/static/System.png)
+![Giao diện hệ thống](/pc/static/run_system.png)
 *(Hình ảnh giao diện thực tế khi nhận diện chữ cái)*
 
 ---
@@ -47,13 +47,11 @@ IT3150_PROJECT_I_SIGNLANGUAGE/
 │   ├── dataset/                # Dữ liệu ảnh sau khi xử lý
 │   ├── model/                  # Chứa model.tflite và labels.json
 │   ├── raw_data/               # Dữ liệu thô (asl_alphabet_train)
-│   ├── static/                 # Tài nguyên tĩnh (ảnh hướng dẫn, icon)
+│   ├── static/                 # Tài nguyên tĩnh (chứa ảnh trong báo cáo)
 │   ├── prepare_dataset.py      # Code tiền xử lý dữ liệu
 │   ├── train_model.py          # Code huấn luyện mô hình AI
 │   ├── run_system.py           # Code SERVER chạy hệ thống
 │   ├── realtime_detect.py      # Module nhận diện thời gian thực
-│   ├── accuracy_chart.png      # Biểu đồ độ chính xác (tự sinh ra khi train)
-│   └── loss_chart.png          # Biểu đồ hàm mất mát (tự sinh ra khi train)
 ├── requirements.txt            # Danh sách thư viện Python
 └── README.md                   # Tài liệu hướng dẫn này
 ```
@@ -88,10 +86,10 @@ Mở file esp32/web/web.ino bằng Arduino IDE.
 
 Chỉnh sửa tên Wifi và Mật khẩu trong code:
 
-C++
-
 const char* ssid = "TEN_WIFI_CUA_BAN";
+
 const char* password = "MAT_KHAU_WIFI";
+
 Kết nối ESP32 với máy tính và nhấn nút Upload.
 
 ## ▶️ Hướng dẫn chạy hệ thống (Usage)
@@ -101,7 +99,7 @@ Kết nối ESP32 với máy tính và nhấn nút Upload.
 python pc/run_system.py
 ```
 
-Màn hình sẽ hiện thông báo: Server đang chạy tại: http://192.168.1.XX:5000
+Màn hình sẽ hiện thông báo: Server đang chạy tại: http://192.168.1.xx:5000   xx lấy ở serial monitor của arduino ide sau khi nạp code vào esp32 thành công
 
 ### Bước 2: Khởi động ESP32
 
@@ -119,10 +117,10 @@ Mở trình duyệt truy cập vào IP của ESP32.
 ### 1. Hiệu suất mô hình
 Biểu đồ được sinh ra sau quá trình huấn luyện:
 
-<p float="left"> <img src="pc/accuracy_chart.png" width="45%" /> <img src="pc/loss_chart.png" width="45%" /> </p>
+<p float="left"> <img src="pc/static/accuracy_chart.png" width="45%" /> <img src="pc/static/loss_chart.png" width="45%" /> </p>
 
 ### 2. Giao diện người dùng
-(Vui lòng chụp ảnh màn hình giao diện Web khi chạy và lưu file tên web_ui_detection.jpg tại thư mục gốc để hiển thị tại đây)
+(/pc/static/System.png)
 
 👨‍💻 Liên hệ
 Nguyễn Đào Nam Hải
