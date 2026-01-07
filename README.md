@@ -66,3 +66,67 @@ Cài đặt các thư viện Python cần thiết:
 pip install tensorflow opencv-python flask numpy matplotlib seaborn scikit-learn
 ```
 
+### 2. Chuẩn bị dữ liệu và Huấn luyện
+Nếu bạn chưa có file model trong thư mục pc/model/, hãy thực hiện lần lượt:
+
+Đảm bảo dataset đã được giải nén vào pc/raw_data/.
+
+Chạy script tiền xử lý:
+```bash
+python pc/prepare_dataset.py
+```
+
+Chạy script huấn luyện mô hình (khoảng 15-20 phút):
+```bash
+python pc/train_model.py
+```
+
+Sau bước này, file model.tflite, accuracy_chart.png và loss_chart.png sẽ được tạo ra trong thư mục pc/.
+
+### 3. Cài đặt cho ESP32
+Mở file esp32/web/web.ino bằng Arduino IDE.
+
+Chỉnh sửa tên Wifi và Mật khẩu trong code:
+
+C++
+
+const char* ssid = "TEN_WIFI_CUA_BAN";
+const char* password = "MAT_KHAU_WIFI";
+Kết nối ESP32 với máy tính và nhấn nút Upload.
+
+## ▶️ Hướng dẫn chạy hệ thống (Usage)
+
+### Bước 1: Chạy Server trên máy tính: Từ thư mục gốc, chạy lệnh:
+```bash
+python pc/run_system.py
+```
+
+Màn hình sẽ hiện thông báo: Server đang chạy tại: http://192.168.1.XX:5000
+
+### Bước 2: Khởi động ESP32
+
+Cấp nguồn cho ESP32.
+
+Mở Serial Monitor (Baud 115200) để xem địa chỉ IP mà ESP32 nhận được (ví dụ: 192.168.1.73).
+
+### Bước 3: Trải nghiệm
+
+Mở trình duyệt truy cập vào IP của ESP32.
+
+Đưa tay vào khung camera để hệ thống nhận diện.
+
+## 📊 Kết quả thực nghiệm (Results)
+### 1. Hiệu suất mô hình
+Biểu đồ được sinh ra sau quá trình huấn luyện:
+
+<p float="left"> <img src="pc/accuracy_chart.png" width="45%" /> <img src="pc/loss_chart.png" width="45%" /> </p>
+
+### 2. Giao diện người dùng
+(Vui lòng chụp ảnh màn hình giao diện Web khi chạy và lưu file tên web_ui_detection.jpg tại thư mục gốc để hiển thị tại đây)
+
+👨‍💻 Liên hệ
+Nguyễn Đào Nam Hải
+
+Email: namhai23092005@gmail.com
+
+Github: https://github.com/NamHaiIT2HUST
