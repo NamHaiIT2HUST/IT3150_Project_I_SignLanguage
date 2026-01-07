@@ -17,7 +17,7 @@ Dự án này xây dựng một hệ thống **AI + IoT** hỗ trợ giao tiếp
 
 Mục tiêu là tạo ra một thiết bị hiển thị nhỏ gọn, giao diện thân thiện, giúp chuyển đổi cử chỉ tay thành văn bản ngay lập tức.
 
-![Giao diện hệ thống](System.png)
+![Giao diện hệ thống](/pc/static/System.png)
 *(Hình ảnh giao diện thực tế khi nhận diện chữ cái)*
 
 ---
