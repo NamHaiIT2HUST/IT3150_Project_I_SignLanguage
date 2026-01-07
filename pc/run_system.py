@@ -7,22 +7,15 @@ import time
 import threading
 from flask import Flask, Response
 
-# =========================
-# 1. CẤU HÌNH (CONFIG)
-# =========================
-# IP của ESP32 (Kiểm tra lại nếu bị đổi)
-ESP32_IP = "192.168.1.73" 
+ESP32_IP = "192.168.1.xx Check trong Arduino IDE" 
 
 MODEL_PATH = "model/model.tflite"
 LABEL_PATH = "model/labels.json"
 
 IMG_SIZE = 64
-CONFIDENCE_THRESHOLD = 0.4  # Độ nhạy (0.4 là khá nhạy)
-SEND_INTERVAL = 0.3         # Gửi dữ liệu mỗi 0.3s
+CONFIDENCE_THRESHOLD = 0.4
+SEND_INTERVAL = 0.3        
 
-# =========================
-# 2. KHỞI TẠO
-# =========================
 output_frame = None
 lock = threading.Lock()
 app = Flask(__name__)
@@ -42,9 +35,6 @@ except Exception as e:
     print(f"❌ Lỗi tải Model: {e}")
     exit()
 
-# =========================
-# 3. XỬ LÝ CAMERA & AI
-# =========================
 def process_camera():
     global output_frame
     cap = cv2.VideoCapture(0)
@@ -60,42 +50,33 @@ def process_camera():
         if not success:
             continue
 
-        # Lật ảnh gương
         frame = cv2.flip(frame, 1)
         display_frame = frame.copy()
 
-        # --- AI DETECTION ---
-        # 1. Vẽ vùng nhận diện (ROI)
         x1, y1, x2, y2 = 100, 100, 350, 350
         cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         roi = frame[y1:y2, x1:x2]
 
         try:
-            # 2. Xử lý ảnh (Grayscale -> Resize)
             img = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
             img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
             img = img / 255.0
             input_data = img.reshape(1, IMG_SIZE, IMG_SIZE, 1).astype(np.float32)
 
-            # 3. Chạy Model
             interpreter.set_tensor(input_details[0]['index'], input_data)
             interpreter.invoke()
             output = interpreter.get_tensor(output_details[0]['index'])[0]
-            
-            # 4. Lấy kết quả & XỬ LÝ CHUỖI
+
             class_id = int(np.argmax(output))
             confidence = float(output[class_id])
             
             raw_label = LABELS[class_id]
-            # 🔥 FIX: Xóa chữ "-samples" đi để chỉ còn A, B, C...
             label = raw_label.replace("-samples", "").replace("samples", "")
 
-            # Hiển thị lên màn hình PC
             text = f"{label} ({confidence:.2f})"
             color = (0, 255, 0) if confidence > CONFIDENCE_THRESHOLD else (0, 0, 255)
             cv2.putText(display_frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
-            # 5. Gửi sang ESP32
             now = time.time()
             if confidence > CONFIDENCE_THRESHOLD and (now - last_send_time > SEND_INTERVAL):
                 try:
@@ -108,7 +89,6 @@ def process_camera():
         except Exception as e:
             print(f"Lỗi AI: {e}")
 
-        # --- CẬP NHẬT FRAME CHO WEB ---
         with lock:
             output_frame = display_frame.copy()
             
@@ -116,9 +96,6 @@ def process_camera():
 
     cap.release()
 
-# =========================
-# 4. SERVER VIDEO (FLASK)
-# =========================
 def generate():
     global output_frame
     while True:
@@ -135,9 +112,6 @@ def generate():
 def video_feed():
     return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
-# =========================
-# 5. CHẠY CHƯƠNG TRÌNH
-# =========================
 if __name__ == '__main__':
     t = threading.Thread(target=process_camera)
     t.daemon = True
