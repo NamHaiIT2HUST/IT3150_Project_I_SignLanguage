@@ -2,8 +2,8 @@
 #include <WebServer.h>
 #include "web_interface.h" 
 
-const char* ssid = "Repeater";
-const char* password = "22222222";
+const char* ssid = "NDNH";
+const char* password = "23092005";
 
 WebServer server(80);
 String currentLetter = "?"; 

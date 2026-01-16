@@ -1,127 +1,118 @@
 import cv2
-import json
 import numpy as np
 import tensorflow as tf
-import requests
-import time
-import threading
 from flask import Flask, Response
+import threading
+import time
+import requests  # Thư viện để gửi tin sang ESP32
 
-ESP32_IP = "192.168.1.xx Check trong Arduino IDE" 
+# ==========================================
+# CẤU HÌNH QUAN TRỌNG (SỬA IP CỦA ESP32 Ở ĐÂY)
+# ==========================================
+# Nhìn trên thanh địa chỉ trình duyệt: 172.20.10.2
+ESP32_IP = "172.20.10.2"  
+# ==========================================
 
-MODEL_PATH = "model/model.tflite"
-LABEL_PATH = "model/labels.json"
-
-IMG_SIZE = 64
-CONFIDENCE_THRESHOLD = 0.4
-SEND_INTERVAL = 0.3        
-
-output_frame = None
-lock = threading.Lock()
 app = Flask(__name__)
 
-print("🔄 Đang tải Model AI...")
+# Tải model (giữ nguyên đường dẫn của bạn)
 try:
-    with open(LABEL_PATH, "r") as f:
-        label_map = json.load(f)
-    LABELS = [label_map[str(i)] for i in range(len(label_map))]
-
-    interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
-    interpreter.allocate_tensors()
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    print("✅ Model đã tải thành công!")
+    model = tf.lite.Interpreter(model_path="model/model.tflite")
+    model.allocate_tensors()
+    input_details = model.get_input_details()
+    output_details = model.get_output_details()
+    # Load labels
+    import json
+    with open('model/labels.json', 'r') as f:
+        labels = json.load(f)
+    print("✅ Đã tải Model thành công!")
 except Exception as e:
-    print(f"❌ Lỗi tải Model: {e}")
-    exit()
+    print("❌ Lỗi tải Model:", e)
 
-def process_camera():
-    global output_frame
+current_char = "?"
+frame_bytes = b''
+
+def detect_loop():
+    global current_char, frame_bytes
     cap = cv2.VideoCapture(0)
     
-    if not cap.isOpened():
-        print("❌ Không thể mở Webcam!")
-        return
-
-    last_send_time = 0
-
     while True:
-        success, frame = cap.read()
-        if not success:
-            continue
-
+        ret, frame = cap.read()
+        if not ret: continue
+        
+        # Lật ảnh
         frame = cv2.flip(frame, 1)
-        display_frame = frame.copy()
 
-        x1, y1, x2, y2 = 100, 100, 350, 350
-        cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        roi = frame[y1:y2, x1:x2]
+        # Vẽ khung vuông
+        cv2.rectangle(frame, (100, 100), (400, 400), (0, 255, 0), 2)
+        roi = frame[100:400, 100:400]
+        
+        # Giá trị mặc định
+        confidence = 0.0
+        text_display = "?" 
 
-        try:
-            img = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-            img = img / 255.0
-            input_data = img.reshape(1, IMG_SIZE, IMG_SIZE, 1).astype(np.float32)
+        if roi.size > 0:
+            try:
+                # 1. Chuyển sang ảnh xám
+                roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                
+                # 2. Resize về 64x64
+                img = cv2.resize(roi_gray, (64, 64))
+                
+                # 3. Reshape chuẩn (1, 64, 64, 1)
+                img = img.reshape(1, 64, 64, 1).astype(np.float32) / 255.0
+                
+                # 4. Dự đoán
+                model.set_tensor(input_details[0]['index'], img)
+                model.invoke()
+                output = model.get_tensor(output_details[0]['index'])[0]
+                
+                idx = np.argmax(output)      # Ra số (ví dụ: 12)
+                confidence = output[idx]
+                
+                # ===> SỬA LỖI Ở ĐÂY: Thêm str() <===
+                if str(idx) in labels:
+                    raw_label = labels[str(idx)]
+                    # Cắt bỏ mọi chữ "samples", "_samples", "-samples" cho sạch
+                    temp_char = raw_label.replace("-samples", "").replace("_samples", "").replace("samples", "").strip()
+                else:
+                    temp_char = "?"
 
-            interpreter.set_tensor(input_details[0]['index'], input_data)
-            interpreter.invoke()
-            output = interpreter.get_tensor(output_details[0]['index'])[0]
+                # Logic gửi sang ESP32
+                if confidence > 0.7: # Tăng độ tin cậy lên chút cho đỡ nhảy lung tung
+                    current_char = temp_char
+                    text_display = f"{current_char} ({confidence:.2f})"
+                    
+                    try:
+                        url = f"http://{ESP32_IP}/update?char={current_char}"
+                        requests.get(url, timeout=0.1)
+                        print(f"📡 Đã gửi '{current_char}'")
+                    except:
+                        pass
+                else:
+                    text_display = f"? ({confidence:.2f})"
 
-            class_id = int(np.argmax(output))
-            confidence = float(output[class_id])
-            
-            raw_label = LABELS[class_id]
-            label = raw_label.replace("-samples", "").replace("samples", "")
+            except Exception as e:
+                # In lỗi cụ thể hơn để dễ sửa
+                print(f"Lỗi: {e}") 
 
-            text = f"{label} ({confidence:.2f})"
-            color = (0, 255, 0) if confidence > CONFIDENCE_THRESHOLD else (0, 0, 255)
-            cv2.putText(display_frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+        # Hiển thị lên màn hình
+        cv2.putText(frame, text_display, (100, 90), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-            now = time.time()
-            if confidence > CONFIDENCE_THRESHOLD and (now - last_send_time > SEND_INTERVAL):
-                try:
-                    url = f"http://{ESP32_IP}/update?char={label}"
-                    requests.get(url, timeout=0.1)
-                    last_send_time = now
-                except:
-                    pass
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
 
-        except Exception as e:
-            print(f"Lỗi AI: {e}")
+threading.Thread(target=detect_loop, daemon=True).start()
 
-        with lock:
-            output_frame = display_frame.copy()
-            
-        time.sleep(0.01)
-
-    cap.release()
-
-def generate():
-    global output_frame
-    while True:
-        with lock:
-            if output_frame is None:
-                continue
-            (flag, encodedImage) = cv2.imencode(".jpg", output_frame)
-            if not flag:
-                continue
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
-              bytearray(encodedImage) + b'\r\n')
-
-@app.route("/video")
+@app.route('/video')
 def video_feed():
-    return Response(generate(), mimetype = "multipart/x-mixed-replace; boundary=frame")
+    def generate():
+        while True:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            time.sleep(0.03)
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    t = threading.Thread(target=process_camera)
-    t.daemon = True
-    t.start()
-
-    print("\n" + "="*60)
-    print(f"🚀 HỆ THỐNG ĐÃ SẴN SÀNG!")
-    print(f"🎥 Video Stream : http://localhost:5000/video")
-    print("-" * 60)
-    print(f"👉 BẤM ĐỂ MỞ WEB: http://{ESP32_IP}")
-    print("="*60 + "\n")
-
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000)
