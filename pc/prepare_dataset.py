@@ -2,7 +2,7 @@ import cv2
 import os
 import random
 
-# Cấu hình
+#Cấu hình
 RAW_DIR = "raw_data/asl_alphabet_train" 
 OUT_DIR = "dataset"                    
 IMG_SIZE = 64
