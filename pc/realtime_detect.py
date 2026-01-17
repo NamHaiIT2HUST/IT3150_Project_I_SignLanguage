@@ -5,9 +5,9 @@ import tensorflow as tf
 import requests
 import time
 
-MODEL_PATH = "model/model.tflite" #Đường dẫn đến "bộ não" đã train
-LABEL_PATH = "model/labels.json"  #Đường dẫn đến "từ điển" (số 0 là A, 1 là B...)
-IMG_SIZE = 64                     #Kích thước ảnh chuẩn (phải khớp với lúc train)
+MODEL_PATH = "model/model.tflite" 
+LABEL_PATH = "model/labels.json"  
+IMG_SIZE = 64                    
 
 #Địa chỉ IP của ESP32
 ESP32_IP = "192.168.1.73" 
