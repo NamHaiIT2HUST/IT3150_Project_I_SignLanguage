@@ -10,7 +10,7 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 
 DATASET_DIR = "dataset" #ảnh train data
 MODEL_DIR = "model" #lưu sau khi train
-IMG_SIZE = 64             
+IMG_SIZE = 48  # Giảm từ 64->48 để tensor arena vừa RAM khi chạy on-device trên ESP32
 EPOCHS = 15 #số lần học dữ liệu
 BATCH_SIZE = 32 #Số lần học trong 1 lần cập nhật
 
@@ -47,25 +47,26 @@ labels = np.array(labels)
 #Chia ra 80% để học, 20% để test -> K-fold
 X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, random_state=42, stratify=labels)
 
-#Cấu trúc mạng CNN để train 
+#Cấu trúc mạng CNN gọn nhẹ để chạy được on-device trên ESP32 (TFLite Micro)
+#padding="same" để activation map co theo đúng tỷ lệ pooling, tránh tensor
+#trung gian phình to (bản cũ dùng padding mặc định "valid" khiến layer đầu
+#tạo ra tensor 62x62x32, không vừa tensor arena của MCU)
 model = Sequential([
-    #Lớp tích chập (cạnh, góc, đường con)
-    Conv2D(32, (3,3), activation="relu", input_shape=(IMG_SIZE, IMG_SIZE, 1)),
-    #giảm kích thước ảnh
+    Conv2D(16, (3,3), activation="relu", padding="same", input_shape=(IMG_SIZE, IMG_SIZE, 1)),
     MaxPooling2D(2,2),
-    
-    Conv2D(64, (3,3), activation="relu"),
+
+    Conv2D(32, (3,3), activation="relu", padding="same"),
     MaxPooling2D(2,2),
-    
-    Conv2D(64, (3,3), activation="relu"),
+
+    Conv2D(32, (3,3), activation="relu", padding="same"),
     MaxPooling2D(2,2),
-    
+
     Flatten(),
-    
-    Dense(128, activation="relu"),
-    
+
+    Dense(64, activation="relu"),
+
     #Tránh overfitting
-    Dropout(0.4),
+    Dropout(0.3),
 
     Dense(len(CLASSES), activation="softmax")
 ])
@@ -103,14 +104,28 @@ plt.grid(True)
 plt.savefig('loss_chart.png') 
 print("✅ Đã lưu loss_chart.png")
 
-#chuyển sang dạng TFLite phù hợp với thiết bị biên
+#chuyển sang dạng TFLite Micro (int8) để chạy on-device trên ESP32
+def representative_data_gen():
+    for i in range(min(300, len(X_train))):
+        yield [X_train[i:i+1].astype(np.float32)]
+
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = representative_data_gen
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.int8
+converter.inference_output_type = tf.int8
 tflite_model = converter.convert()
 with open(os.path.join(MODEL_DIR, "model.tflite"), "wb") as f:
     f.write(tflite_model)
+print(f"✅ Đã lưu model.tflite (int8, {len(tflite_model)/1024:.1f} KB)")
 
-#Lưu theo các nhãn
-label_map = {i: cls for i, cls in enumerate(CLASSES)}
+#Lưu theo các nhãn (bỏ hậu tố "-samples"/"_samples" của tên thư mục dataset
+#để tránh phải strip lại ở tầng suy luận/hiển thị)
+def clean_label(name):
+    return name.replace("-samples", "").replace("_samples", "").replace("samples", "").strip()
+
+label_map = {i: clean_label(cls) for i, cls in enumerate(CLASSES)}
 with open(os.path.join(MODEL_DIR, "labels.json"), "w") as f:
     json.dump(label_map, f, indent=2)
 

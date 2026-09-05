@@ -3,10 +3,10 @@ import os
 import random
 
 #Cấu hình
-RAW_DIR = "raw_data/asl_alphabet_train" 
-OUT_DIR = "dataset"                    
-IMG_SIZE = 64
-MAX_IMAGES = 500 
+RAW_DIR = "raw_data/asl_alphabet_train"
+OUT_DIR = "dataset"
+IMG_SIZE = 48  # Giảm từ 64->48 để vừa tensor arena khi chạy on-device trên ESP32
+MAX_IMAGES = 500
 
 os.makedirs(OUT_DIR, exist_ok=True)
 
