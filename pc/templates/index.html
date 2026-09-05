@@ -3,22 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hệ thống nhận diện ngôn ngữ ký hiệu</title>
+  <title>Hệ thống nhận diện ngôn ngữ ký hiệu (Edge AI)</title>
   <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="container">
-    <h1>Hệ thống nhận dạng ngôn ngữ ký hiệu</h1>
+    <h1>Hệ thống nhận dạng ngôn ngữ ký hiệu <span class="badge-edge">Edge AI</span></h1>
     <div class="content-grid">
       <div class="left-panel">
-        <div class="card camera-section">
+        <div class="card device-section">
           <div class="card-title">
-            <span>📹 Camera</span>
-            <span class="badge-live">Live</span>
+            <span>📡 Thiết bị Edge (ESP32-S3-CAM)</span>
+            <span class="badge-live" id="conn-badge">Đang chờ...</span>
           </div>
-          <div class="video-wrapper">
-            <img id="video" src="{{ url_for('video_feed') }}" alt="Đang kết nối camera...">
+          <div class="device-status">
+            <div class="status-row">
+              <span class="label-small">Trạng thái</span>
+              <span id="status-text">--</span>
+            </div>
+            <div class="status-row">
+              <span class="label-small">Độ tin cậy</span>
+              <span id="confidence-text">--</span>
+            </div>
           </div>
         </div>
         <div class="card cheatsheet-section">
@@ -29,13 +36,6 @@
         </div>
       </div>
       <div class="right-panel">
-        <div class="timer-ring">
-          <svg class="timer-svg" viewBox="0 0 100 100">
-            <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-fg" cx="50" cy="50" r="45" stroke-dasharray="282.7" stroke-dashoffset="0"></circle>
-          </svg>
-          <div class="timer-text" id="timer-display">5</div>
-        </div>
         <div class="result-area">
           <div class="label-small">Ký Tự Nhận Diện</div>
           <div class="big-letter" id="live-char">--</div>
@@ -44,76 +44,40 @@
           <span id="history-text"></span><span style="animation:pulse 1s infinite; font-weight:bold;">|</span>
         </div>
         <div class="button-group">
-          <button id="btn-start" class="btn-start" onclick="startSystem()">▶ Start</button>
-          <button id="btn-stop" class="btn-stop" onclick="stopSystem()">⏹ Stop</button>
-          <button class="btn-clear" onclick="clearHistory()">🗑 Xóa</button>
+          <button class="btn-clear" onclick="clearHistory()">🗑 Xóa lịch sử</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    let timeLeft = 5; let maxTime = 5; let isRunning = false;
-    let currentDetect = ""; let historyStr = "";
-    const circle = document.querySelector('.timer-fg');
-    const circumference = 282.7;
-    
-    circle.style.strokeDasharray = `${circumference} ${circumference}`;
-    
-    function setProgress(percent) {
-      const offset = circumference - (percent / 100) * circumference;
-      circle.style.strokeDashoffset = offset;
-    }
+    async function poll() {
+      try {
+        const res = await fetch('/state');
+        const data = await res.json();
 
-    function startSystem() {
-      isRunning = true;
-      document.getElementById("btn-start").style.display = "none";
-      document.getElementById("btn-stop").style.display = "block";
-      timeLeft = 5; setProgress(100);
-      document.querySelector('.timer-fg').style.stroke = "#f44336"; 
-    }
+        document.getElementById('conn-badge').innerText = data.connected ? 'Live' : 'Mất kết nối';
+        document.getElementById('conn-badge').style.background = data.connected ? '#f44336' : '#999';
+        document.getElementById('status-text').innerText = data.connected ? 'Đang nhận diện' : 'Không có tín hiệu';
 
-    function stopSystem() {
-      isRunning = false;
-      document.getElementById("btn-start").style.display = "block";
-      document.getElementById("btn-stop").style.display = "none";
-      document.getElementById("timer-display").innerText = "5"; setProgress(0);
-      document.querySelector('.timer-fg').style.stroke = "#667eea";
-      document.getElementById("live-char").innerText = "--";
-    }
+        const charEl = document.getElementById('live-char');
+        charEl.innerText = data.char ? data.char : '--';
 
-    // Hàm này sẽ gọi API /get_result từ Python
-    setInterval(() => {
-      fetch('/get_result').then(res => res.text()).then(data => {
-        currentDetect = data;
-        const charEl = document.getElementById("live-char");
-        if(isRunning) {
-           charEl.innerText = (data === "?" || data === "") ? "--" : data;
-        }
-      }).catch(e => console.log("Waiting..."));
-    }, 300);
+        document.getElementById('confidence-text').innerText =
+          data.char ? (data.confidence * 100).toFixed(0) + '%' : '--';
 
-    setInterval(() => {
-      if (!isRunning) return;
-      timeLeft--;
-      document.getElementById("timer-display").innerText = timeLeft;
-      setProgress((timeLeft / maxTime) * 100);
-      
-      if (timeLeft <= 0) {
-        // Logic ghép chữ
-        if (currentDetect !== "?" && currentDetect !== "" && currentDetect !== "--") {
-          historyStr += currentDetect;
-          document.getElementById("history-text").innerText = historyStr;
-          const box = document.getElementById("history-box");
-          box.scrollTop = box.scrollHeight;
-        }
-        timeLeft = 5; setProgress(100);
+        document.getElementById('history-text').innerText = data.history;
+        const box = document.getElementById('history-box');
+        box.scrollTop = box.scrollHeight;
+      } catch (e) {
+        document.getElementById('conn-badge').innerText = 'Mất kết nối server';
       }
-    }, 1000);
+    }
+    setInterval(poll, 300);
+    poll();
 
-    function clearHistory() { 
-      historyStr = ""; 
-      document.getElementById("history-text").innerText = ""; 
+    function clearHistory() {
+      fetch('/clear', { method: 'POST' });
     }
   </script>
 </body>

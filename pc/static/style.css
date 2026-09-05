@@ -25,13 +25,19 @@ body {
 }
 h1 {
   text-align: center;
-  font-size: 1.5rem; 
+  font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 10px;
   background: linear-gradient(45deg, #667eea, #764ba2);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   text-transform: uppercase;
   flex-shrink: 0;
+}
+.badge-edge {
+  -webkit-text-fill-color: initial;
+  background: #4CAF50; color: white; -webkit-background-clip: initial;
+  font-size: 0.7rem; padding: 2px 8px; border-radius: 6px;
+  vertical-align: middle; text-transform: none;
 }
 .content-grid {
   display: grid;
@@ -64,16 +70,24 @@ h1 {
   display: flex; justify-content: space-between; align-items: center;
   flex-shrink: 0;
 }
-.camera-section { flex: 1.2; display: flex; flex-direction: column; }
-.cheatsheet-section { flex: 0.8; display: flex; flex-direction: column; }
-.video-wrapper, .cheat-sheet-wrapper {
+.device-section { flex: 0.6; display: flex; flex-direction: column; }
+.cheatsheet-section { flex: 1.4; display: flex; flex-direction: column; }
+.cheat-sheet-wrapper {
   flex: 1; width: 100%; height: 100%;
   border-radius: 8px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   background: #000; min-height: 0;
 }
-img#video, .cheat-sheet-img { 
-  width: 100%; height: 100%; object-fit: contain; display: block; 
+.cheat-sheet-img {
+  width: 100%; height: 100%; object-fit: contain; display: block;
+}
+.device-status {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  gap: 10px; padding: 5px 10px;
+}
+.status-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 1rem; font-weight: 600; color: #333;
 }
 .right-panel {
   background: rgba(255, 255, 255, 0.5);
@@ -82,20 +96,6 @@ img#video, .cheat-sheet-img {
   align-items: center; justify-content: space-between;
   border: 1px solid rgba(255, 255, 255, 0.5);
   height: 100%; min-height: 0; overflow: hidden;
-}
-.timer-ring { 
-  position: relative; width: 80px; height: 80px; 
-  flex-shrink: 0; margin-bottom: 10px;
-}
-.timer-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-.timer-bg { fill: none; stroke: #ddd; stroke-width: 7; }
-.timer-fg { 
-  fill: none; stroke: #667eea; stroke-width: 7; stroke-linecap: round; 
-  transition: stroke-dashoffset 1s linear;
-}
-.timer-text {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 1.8rem; font-weight: 700; color: #444;
 }
 .result-area { text-align: center; flex-shrink: 0; margin-bottom: 5px; }
 .label-small { font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase; }
@@ -123,9 +123,7 @@ button {
   white-space: nowrap;
 }
 button:hover { transform: translateY(-2px); }
-.btn-start { background: linear-gradient(45deg, #4CAF50, #45a049); }
-.btn-stop { background: linear-gradient(45deg, #f44336, #da190b); display: none; }
-.btn-clear { background: linear-gradient(45deg, #FF9800, #e68900); flex: 0.6; }
+.btn-clear { background: linear-gradient(45deg, #FF9800, #e68900); }
 .badge-live {
   background: #f44336; color: white; padding: 2px 6px;
   border-radius: 6px; font-size: 0.65rem; animation: pulse 1.5s infinite;
@@ -137,6 +135,6 @@ button:hover { transform: translateY(-2px); }
   .container { height: auto; overflow: visible; }
   .content-grid { grid-template-columns: 1fr; overflow: visible; }
   .left-panel { height: auto; }
-  .camera-section, .cheatsheet-section { height: 300px; flex: none; }
+  .device-section, .cheatsheet-section { height: 300px; flex: none; }
   .right-panel { height: auto; }
 }
