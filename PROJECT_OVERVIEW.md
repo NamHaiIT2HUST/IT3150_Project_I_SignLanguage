@@ -56,8 +56,21 @@ tràn RAM khi phải chạy đồng thời WiFi + camera + CNN trên một chip 
 CNN gốc ở v1 (input 64×64, ~350K tham số, float32, ~1.4MB) không thể chạy trên vi điều khiển: quá nặng cho
 bộ nhớ và không tương thích thẳng với TensorFlow Lite Micro (bản TFLite dành cho thiết bị nhúng). Ở v2, CNN
 được thu gọn (input 48×48, filter 16/32/32, `padding=same` để tránh tensor trung gian phình to) và lượng tử
-hoá **int8 toàn phần** bằng representative dataset. Kết quả đo thực tế: model giảm còn **96.8KB**, val
-accuracy **~86%** trên tập Kaggle rút gọn hiện có trong repo (~100 ảnh/lớp).
+hoá **int8 toàn phần** bằng representative dataset. Kết quả đo thực tế: model giảm còn **96.8KB**.
+
+### Chẩn đoán bằng confusion matrix và cải thiện bằng augmentation
+
+Model đầu tiên (chưa augment) chỉ đạt 82.1% test accuracy (đo trên chính model int8). Confusion matrix
+(`pc/confusion_matrix.png`, `pc/model/classification_report.txt`) cho thấy lỗi **không rải đều** mà tập
+trung vào các cụm ký hiệu tay giống nhau về hình học: M/N/S/T/E (nhóm nắm tay kín), K/V/W (nhóm xòe ngón),
+R/U. Đây là bằng chứng cho thấy augmentation có mục tiêu sẽ hiệu quả hơn là thu thêm dữ liệu tràn lan cho
+cả 24 lớp đều nhau.
+
+Sau khi thêm augmentation (xoay ±15°, dịch nhẹ vài pixel, jitter sáng/tương phản — chỉ áp dụng cho tập
+train, giữ nguyên tập test để đánh giá công bằng) trong `pc/train_model.py`, test accuracy tăng lên
+**93.6%**. Cặp khó nhất còn lại chỉ còn M↔N (hai ký hiệu chỉ khác nhau ở việc gập 1 ngón tay) — đây là giới
+hạn hình học thật của bài toán, augmentation hay thêm dữ liệu nhiều khả năng khó xoá hoàn toàn cặp nhầm lẫn
+này, chỉ có thể giảm bớt.
 
 ## 4. Rủi ro kỹ thuật đã xác định
 
@@ -101,6 +114,8 @@ pc/
 
 Đã hoàn thành và kiểm thử được (không cần phần cứng mới):
 - Pipeline train + quantize (đã chạy thật, có số liệu accuracy/kích thước model thật).
+- Confusion matrix + classification report để chẩn đoán lỗi theo từng lớp, và augmentation có mục tiêu
+  dựa trên chẩn đoán đó — nâng test accuracy (model int8) từ 82.1% lên 93.6%.
 - PC server trung tâm + dashboard (đã test end-to-end bằng cách giả lập request từ ESP32).
 - Tái cấu trúc thư mục, bảo tồn kiến trúc v1 qua git tag để tham khảo/so sánh.
 

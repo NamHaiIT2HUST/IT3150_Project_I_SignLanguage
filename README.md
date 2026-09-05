@@ -131,14 +131,22 @@ Mở trình duyệt tới `http://<PC_IP>:5000`.
 ## 📊 Kết quả thực nghiệm (Results)
 
 Đã chạy thử pipeline v2 (48x48, int8) với dữ liệu Kaggle hiện có trong repo (~100 ảnh/lớp — tập rút gọn,
-chưa phải bộ đầy đủ):
+chưa phải bộ đầy đủ). Confusion matrix trên model đầu tiên (chưa augment) cho thấy lỗi tập trung vào các
+cụm ký hiệu tay giống nhau về hình học (M/N/S/T/E, K/V/W, R/U) chứ không rải đều — nên thêm augmentation
+(xoay ±15°, dịch nhẹ, jitter sáng/tương phản, chỉ áp dụng cho tập train) thay vì thu thêm dữ liệu tràn lan:
 
-| | v1 (64x64, float32) | v2 (48x48, int8) |
-|---|---|---|
-| Kích thước model | ~1.4 MB | **96.8 KB** |
-| Validation accuracy | (xem báo cáo PDF) | **~86%** |
+| | v1 (64x64, float32) | v2 - trước augment | v2 - sau augment |
+|---|---|---|---|
+| Kích thước model | ~1.4 MB | 96.8 KB | **96.8 KB** |
+| Test accuracy (model int8 thật) | (xem báo cáo PDF) | 82.1% | **93.6%** |
 
 <p float="left"> <img src="pc/static/accuracy_chart.png" width="45%" /> <img src="pc/static/loss_chart.png" width="45%" /> </p>
+
+<img src="pc/static/confusion_matrix.png" width="70%" />
+
+Xem `pc/model/classification_report.txt` để biết chi tiết precision/recall từng lớp. Sau
+augment, cặp khó nhất còn lại chỉ còn **M↔N** (recall M 67%, hay bị nhầm thành N) — đúng đặc thù ASL vì
+hai ký hiệu này chỉ khác nhau ở việc gập 1 ngón tay, kể cả người thật cũng dễ nhầm nếu nhìn ảnh tĩnh.
 
 Số liệu accuracy này đo trên ảnh Kaggle (`pc/dataset`), **chưa phản ánh** hiệu năng thật trên ảnh chụp từ
 camera OV2640 (xem rủi ro domain shift ở mục cài đặt bước 3) và **chưa đo được FPS/latency thật** vì chưa có
