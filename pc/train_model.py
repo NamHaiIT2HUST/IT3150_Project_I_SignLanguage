@@ -3,8 +3,10 @@ import cv2
 import json
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, classification_report
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
@@ -19,6 +21,13 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 #Lưu label
 CLASSES = sorted([d for d in os.listdir(DATASET_DIR) if os.path.isdir(os.path.join(DATASET_DIR, d))])
 print(f"🔥 Đang train cho {len(CLASSES)} lớp: {CLASSES}")
+
+#Bỏ hậu tố "-samples"/"_samples" của tên thư mục dataset để ra tên chữ cái sạch
+#(dùng chung cho label_map luu ra va label hiển thị trên confusion matrix)
+def clean_label(name):
+    return name.replace("-samples", "").replace("_samples", "").replace("samples", "").strip()
+
+DISPLAY_LABELS = [clean_label(c) for c in CLASSES]
 
 images = []
 labels = []
@@ -46,6 +55,37 @@ labels = np.array(labels)
 
 #Chia ra 80% để học, 20% để test -> K-fold
 X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, random_state=42, stratify=labels)
+
+#Data augmentation: chỉ áp dụng cho tập train (giữ nguyên X_test để đánh giá công bằng).
+#Dataset hiện chỉ ~80 ảnh train/lớp - augment giúp mô hình thấy nhiều biến thể góc
+#xoay/độ sáng hơn, dù không giải quyết được gốc rễ việc vài chữ (M/N/S/T/E, K/V/W,
+#R/U) có hình tay giống nhau thật sự (xem confusion_matrix.png).
+AUGMENT_MULTIPLIER = 3  # Mỗi ảnh gốc sinh thêm bấy nhiêu bản augment
+
+def augment_image(img_2d):
+    img_u8 = (img_2d * 255).astype(np.uint8)
+
+    angle = np.random.uniform(-15, 15)
+    rot_m = cv2.getRotationMatrix2D((IMG_SIZE // 2, IMG_SIZE // 2), angle, 1.0)
+    img_u8 = cv2.warpAffine(img_u8, rot_m, (IMG_SIZE, IMG_SIZE), borderMode=cv2.BORDER_REPLICATE)
+
+    tx, ty = np.random.randint(-4, 5, size=2)
+    shift_m = np.float32([[1, 0, tx], [0, 1, ty]])
+    img_u8 = cv2.warpAffine(img_u8, shift_m, (IMG_SIZE, IMG_SIZE), borderMode=cv2.BORDER_REPLICATE)
+
+    alpha = np.random.uniform(0.8, 1.2)  # contrast
+    beta = np.random.uniform(-20, 20)    # brightness
+    img_u8 = np.clip(img_u8.astype(np.float32) * alpha + beta, 0, 255).astype(np.uint8)
+
+    return img_u8 / 255.0
+
+print(f"🔄 Đang augment dữ liệu train (x{AUGMENT_MULTIPLIER})...")
+aug_images = [augment_image(img[:, :, 0]) for img in X_train for _ in range(AUGMENT_MULTIPLIER)]
+aug_labels = [label for label in y_train for _ in range(AUGMENT_MULTIPLIER)]
+
+X_train = np.concatenate([X_train, np.array(aug_images).reshape(-1, IMG_SIZE, IMG_SIZE, 1)])
+y_train = np.concatenate([y_train, np.array(aug_labels)])
+print(f"✅ Tập train sau augment: {len(X_train)} ảnh")
 
 #Cấu trúc mạng CNN gọn nhẹ để chạy được on-device trên ESP32 (TFLite Micro)
 #padding="same" để activation map co theo đúng tỷ lệ pooling, tránh tensor
@@ -89,8 +129,8 @@ plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
 plt.grid(True)
-plt.savefig('accuracy_chart.png') 
-print("✅ Đã lưu accuracy_chart.png")
+plt.savefig('static/accuracy_chart.png')
+print("✅ Đã lưu static/accuracy_chart.png")
 
 #Vẽ biểu đồ Loss
 plt.figure(figsize=(8, 5))
@@ -101,8 +141,30 @@ plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
 plt.grid(True)
-plt.savefig('loss_chart.png') 
-print("✅ Đã lưu loss_chart.png")
+plt.savefig('static/loss_chart.png')
+print("✅ Đã lưu static/loss_chart.png")
+
+#Confusion matrix trên tập test: biết chữ nào hay bị nhầm với chữ nào, để
+#quyết định nên thu thêm dữ liệu tràn lan hay nhắm đúng vài cặp hay nhầm
+print("🔍 Đang tính confusion matrix...")
+y_pred_classes = np.argmax(model.predict(X_test, verbose=0), axis=1)
+
+cm = confusion_matrix(y_test, y_pred_classes)
+plt.figure(figsize=(12, 10))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+            xticklabels=DISPLAY_LABELS, yticklabels=DISPLAY_LABELS)
+plt.title("Confusion Matrix")
+plt.xlabel("Dự đoán")
+plt.ylabel("Thực tế")
+plt.tight_layout()
+plt.savefig("static/confusion_matrix.png")
+print("✅ Đã lưu static/confusion_matrix.png")
+
+report = classification_report(y_test, y_pred_classes, target_names=DISPLAY_LABELS)
+print(report)
+with open(os.path.join(MODEL_DIR, "classification_report.txt"), "w", encoding="utf-8") as f:
+    f.write(report)
+print("✅ Đã lưu classification_report.txt")
 
 #chuyển sang dạng TFLite Micro (int8) để chạy on-device trên ESP32
 def representative_data_gen():
@@ -120,12 +182,9 @@ with open(os.path.join(MODEL_DIR, "model.tflite"), "wb") as f:
     f.write(tflite_model)
 print(f"✅ Đã lưu model.tflite (int8, {len(tflite_model)/1024:.1f} KB)")
 
-#Lưu theo các nhãn (bỏ hậu tố "-samples"/"_samples" của tên thư mục dataset
+#Lưu theo các nhãn (đã bỏ hậu tố "-samples"/"_samples" ở DISPLAY_LABELS phía trên
 #để tránh phải strip lại ở tầng suy luận/hiển thị)
-def clean_label(name):
-    return name.replace("-samples", "").replace("_samples", "").replace("samples", "").strip()
-
-label_map = {i: clean_label(cls) for i, cls in enumerate(CLASSES)}
+label_map = {i: label for i, label in enumerate(DISPLAY_LABELS)}
 with open(os.path.join(MODEL_DIR, "labels.json"), "w") as f:
     json.dump(label_map, f, indent=2)
 
