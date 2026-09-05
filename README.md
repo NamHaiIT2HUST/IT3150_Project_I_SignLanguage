@@ -8,119 +8,148 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=flat&logo=python)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg?style=flat&logo=tensorflow)
-![ESP32](https://img.shields.io/badge/Hardware-ESP32-green.svg?style=flat&logo=arduino)
+![ESP32](https://img.shields.io/badge/Hardware-ESP32--S3--CAM-green.svg?style=flat&logo=arduino)
 ![Flask](https://img.shields.io/badge/Backend-Flask-lightgrey.svg?style=flat&logo=flask)
 
 ## 📖 Giới thiệu (Overview)
 
-Dự án này xây dựng một hệ thống **AI + IoT** hỗ trợ giao tiếp cho người khiếm thính. Hệ thống sử dụng Camera máy tính để nhận diện 26 chữ cái ngôn ngữ ký hiệu Mỹ (ASL) theo thời gian thực và truyền kết quả hiển thị xuống vi điều khiển **ESP32** thông qua giao thức HTTP/Wi-Fi.
+Dự án xây dựng hệ thống **Edge AI + IoT** hỗ trợ giao tiếp cho người khiếm thính: nhận diện 24 chữ cái tĩnh
+trong ngôn ngữ ký hiệu Mỹ (ASL, không gồm J và Z vì 2 ký hiệu này cần chuyển động) theo thời gian thực.
 
-Mục tiêu là tạo ra một thiết bị hiển thị nhỏ gọn, giao diện thân thiện, giúp chuyển đổi cử chỉ tay thành văn bản ngay lập tức.
+**Kiến trúc v2 (hiện tại) — Edge AI đúng nghĩa:** camera + suy luận CNN (TensorFlow Lite Micro, int8) chạy
+**ngay trên chip ESP32-S3-CAM**, không phụ thuộc PC lúc vận hành thực tế. PC chỉ đóng vai trò server trung
+tâm host dashboard web, nhận kết quả từ thiết bị edge. Đây là bản redesign từ kiến trúc v1 (PC làm toàn bộ
+suy luận rồi gửi kết quả cho ESP32 tự host web server) — kiến trúc v1 được lưu trữ tại git tag
+[`v1-pc-server-esp32-display`](../../releases/tag/v1-pc-server-esp32-display) và thư mục `legacy_v1/` để
+tham khảo (đây là kiến trúc trong báo cáo `docs/HaiNDN_20235321_Report_ProjectI.pdf` đã nộp).
 
 ![Giao diện hệ thống](/pc/static/run_system.png)
-*(Hình ảnh giao diện thực tế khi nhận diện chữ cái)*
+*(Ảnh giao diện dashboard — chụp từ kiến trúc v1, sẽ cập nhật lại khi có ảnh dashboard v2)*
 
 ---
 
 ## 🚀 Tính năng nổi bật (Key Features)
 
-* **⚡ Xử lý thời gian thực:** Tốc độ 25-30 FPS nhờ kỹ thuật Đa luồng (Multi-threading).
-* **🧠 Deep Learning:** Sử dụng mạng Nơ-ron Tích chập (CNN) được huấn luyện trên dataset ASL.
-* **📡 IoT Streaming:** Truyền video mượt mà từ PC xuống ESP32 (MJPEG Streaming).
-* **🎨 Giao diện Glassmorphism:** Thiết kế UI hiện đại, thân thiện trên màn hình web.
-* **🔄 Đồng bộ dữ liệu:** ESP32 tự động cập nhật kết quả nhận diện liên tục.
+* **🧠 On-device Inference:** CNN lượng tử hoá int8 chạy trực tiếp trên ESP32-S3-CAM bằng TensorFlow Lite Micro — không cần PC lúc nhận diện.
+* **📡 Kiến trúc Edge AI chuẩn:** Edge node (ESP32-S3-CAM) chỉ cảm biến + suy luận + gửi JSON nhỏ; PC (máy khỏe) host dashboard — đúng vai trò từng bên.
+* **🎨 Dashboard thời gian thực:** Flask server hiển thị ký tự, độ tin cậy, lịch sử ghép chữ, tự động commit khi giữ ký hiệu ổn định.
+* **🔬 Pipeline train + quantize hoàn chỉnh:** từ ảnh Kaggle ASL Alphabet đến model int8 nhúng firmware, kèm công cụ thu thập dữ liệu hiệu chỉnh từ chính camera OV2640 để giảm domain shift.
 
 ---
 
 ## 📂 Cấu trúc thư mục (Project Structure)
 
-Dựa trên cấu trúc mã nguồn thực tế:
-
 ```text
 IT3150_PROJECT_I_SIGNLANGUAGE/
-├── docs/                       # Tài liệu báo cáo (PDF)
+├── docs/                            # Báo cáo PDF (mô tả kiến trúc v1 đã nộp)
 ├── esp32/
-│   └── web/
-│       ├── web.ino             # Code nạp cho mạch ESP32
-│       └── web_interface.h     # Chứa mã HTML/CSS giao diện
-├── pc/                         # --- MÃ NGUỒN CHÍNH TRÊN MÁY TÍNH ---
-│   ├── dataset/                # Dữ liệu ảnh sau khi xử lý
-│   ├── model/                  # Chứa model.tflite và labels.json
-│   ├── raw_data/               # Dữ liệu thô (asl_alphabet_train)
-│   ├── static/                 # Tài nguyên tĩnh (chứa ảnh trong báo cáo)
-│   ├── prepare_dataset.py      # Code tiền xử lý dữ liệu
-│   ├── train_model.py          # Code huấn luyện mô hình AI
-│   ├── run_system.py           # Code SERVER chạy hệ thống
-│   ├── realtime_detect.py      # Module nhận diện thời gian thực
-├── requirements.txt            # Danh sách thư viện Python
-└── README.md                   # Tài liệu hướng dẫn này
+│   ├── edge_inference/              # --- FIRMWARE CHÍNH THỨC (v2) ---
+│   │   ├── edge_inference.ino       # Capture + tiền xử lý + suy luận TFLite Micro + POST kết quả
+│   │   ├── camera_pins.h            # Pin mapping camera OV2640 (board ESP32-S3-CAM)
+│   │   ├── roi_config.h             # Cấu hình kích thước khung hình/ROI/input model
+│   │   └── model_data.h             # Model đã quantize, sinh tự động bởi pc/convert_to_c_array.py
+│   ├── tools/
+│   │   └── capture_mode.ino         # Sketch tạm: thu thập dữ liệu hiệu chỉnh từ camera thật
+│   └── legacy_v1/                   # Firmware kiến trúc v1 (ESP32 tự host web server) — lưu tham khảo
+├── pc/                               # --- MÃ NGUỒN TRÊN MÁY TÍNH ---
+│   ├── dataset/                     # Dữ liệu ảnh Kaggle sau tiền xử lý
+│   ├── dataset_calibration/         # Dữ liệu hiệu chỉnh chụp từ chính ESP32-S3-CAM (Phase 3)
+│   ├── model/                       # model.tflite (int8) + labels.json
+│   ├── legacy_v1/                   # Server v1 (PC làm inference) — lưu tham khảo
+│   ├── prepare_dataset.py           # Tiền xử lý dữ liệu Kaggle (resize 48x48)
+│   ├── train_model.py               # Train CNN gọn + quantize int8 -> model.tflite
+│   ├── convert_to_c_array.py        # model.tflite -> esp32/edge_inference/model_data.h
+│   ├── collect_calibration_set.py   # Thu thập ảnh hiệu chỉnh qua esp32/tools/capture_mode.ino
+│   ├── server.py                    # SERVER TRUNG TÂM (v2): nhận /predict, host dashboard
+│   ├── templates/index.html         # Giao diện dashboard
+│   └── static/                      # CSS + ảnh tĩnh (bảng ký hiệu, biểu đồ)
+├── requirements.txt
+└── README.md
 ```
+
+---
 
 ## ⚙️ Hướng dẫn cài đặt (Installation)
 
-### 1. Thiết lập môi trường trên PC
-Cài đặt các thư viện Python cần thiết:
+### 0. Phần cứng cần có
+- **ESP32-S3-CAM** (khuyến nghị Freenove ESP32-S3-WROOM CAM, có PSRAM) — bắt buộc để chạy on-device inference. ESP32 DevKit thường (không camera) **không đủ** cho kiến trúc v2.
+- Trước khi flash: đối chiếu lại `esp32/edge_inference/camera_pins.h` với board thật (pin mapping có thể khác giữa các revision).
+
+### 1. Môi trường Python trên PC
 ```bash
-pip install tensorflow opencv-python flask numpy matplotlib seaborn scikit-learn
+pip install -r requirements.txt
 ```
 
-### 2. Chuẩn bị dữ liệu và Huấn luyện
-Nếu bạn chưa có file model trong thư mục pc/model/, hãy thực hiện lần lượt:
-
-Đảm bảo dataset đã được giải nén vào pc/raw_data/.
-
-Chạy script tiền xử lý:
+### 2. Chuẩn bị dữ liệu và huấn luyện model (int8)
 ```bash
 python pc/prepare_dataset.py
-```
-
-Chạy script huấn luyện mô hình (khoảng 15-20 phút):
-```bash
 python pc/train_model.py
+python pc/convert_to_c_array.py
 ```
+Sau bước này: `pc/model/model.tflite` (int8) + `pc/model/labels.json`, và
+`esp32/edge_inference/model_data.h` đã được sinh sẵn để nhúng vào firmware.
 
-Sau bước này, file model.tflite, accuracy_chart.png và loss_chart.png sẽ được tạo ra trong thư mục pc/.
+### 3. (Khuyến nghị) Thu thập dữ liệu hiệu chỉnh từ chính camera OV2640
+Model train trên ảnh Kaggle có phân phối pixel khác ảnh chụp thật từ ESP32-S3-CAM — nên thu thập
+thêm một bộ ảnh hiệu chỉnh trước khi coi model "dùng được" trên thiết bị thật:
+1. Nạp `esp32/tools/capture_mode.ino` (sửa `ssid`/`password` trước khi nạp).
+2. Lấy IP từ Serial Monitor, chạy cho từng chữ cái:
+   ```bash
+   python pc/collect_calibration_set.py --esp32-ip <IP> --label A --count 60
+   ```
+3. Train lại/fine-tune với dữ liệu hỗn hợp Kaggle + `pc/dataset_calibration/`.
 
-### 3. Cài đặt cho ESP32
-Mở file esp32/web/web.ino bằng Arduino IDE.
+### 4. Nạp firmware chính thức lên ESP32-S3-CAM
+- Mở `esp32/edge_inference/edge_inference.ino` bằng Arduino IDE.
+- Cài thư viện `esp-tflite-micro` (hoặc `Chirale_TensorFlowLite`) qua Library Manager.
+- Sửa `ssid`, `password`, và `PC_SERVER_URL` (IP của PC chạy `pc/server.py`) trong code.
+- Chọn board ESP32-S3 có PSRAM, bật cấu hình camera tương ứng, nạp code.
+- Mở Serial Monitor (baud 115200) để xem IP thiết bị và log FPS/tensor arena.
 
-Chỉnh sửa tên Wifi và Mật khẩu trong code:
-
-const char* ssid = "TEN_WIFI_CUA_BAN";
-
-const char* password = "MAT_KHAU_WIFI";
-
-Kết nối ESP32 với máy tính và nhấn nút Upload.
-
-## ▶️ Hướng dẫn chạy hệ thống (Usage)
-
-### Bước 1: Chạy Server trên máy tính: Từ thư mục gốc, chạy lệnh:
+### 5. Chạy dashboard trên PC
 ```bash
-python pc/run_system.py
+python pc/server.py
+```
+Mở trình duyệt tới `http://<PC_IP>:5000`.
+
+---
+
+## ▶️ Luồng hoạt động (Usage flow)
+
+```
+[ESP32-S3-CAM]                              [PC - Flask server trung tâm]
+  - Chụp ảnh (grayscale, native OV2640)        - Nhận POST /predict {char, confidence}
+  - Crop ROI + resize 48x48                    - Ghép chữ, lưu lịch sử
+  - Suy luận CNN (TFLite Micro, int8)  --POST-->  - Host dashboard web
+  - KHÔNG host web server                      - Trình duyệt người dùng kết nối vào PC
 ```
 
-Màn hình sẽ hiện thông báo: Server đang chạy tại: http://192.168.1.xx:5000   xx lấy ở serial monitor của arduino ide sau khi nạp code vào esp32 thành công
+Đưa tay vào giữa khung hình camera ESP32-S3-CAM, giữ ổn định ~1 giây để ký tự được ghi vào lịch sử trên dashboard.
 
-### Bước 2: Khởi động ESP32
-
-Cấp nguồn cho ESP32.
-
-Mở Serial Monitor (Baud 115200) để xem địa chỉ IP mà ESP32 nhận được (ví dụ: 192.168.1.73).
-
-### Bước 3: Trải nghiệm
-
-Mở trình duyệt truy cập vào IP của ESP32.
-
-Đưa tay vào khung camera để hệ thống nhận diện.
+---
 
 ## 📊 Kết quả thực nghiệm (Results)
-### 1. Hiệu suất mô hình
-Biểu đồ được sinh ra sau quá trình huấn luyện:
+
+Đã chạy thử pipeline v2 (48x48, int8) với dữ liệu Kaggle hiện có trong repo (~100 ảnh/lớp — tập rút gọn,
+chưa phải bộ đầy đủ):
+
+| | v1 (64x64, float32) | v2 (48x48, int8) |
+|---|---|---|
+| Kích thước model | ~1.4 MB | **96.8 KB** |
+| Validation accuracy | (xem báo cáo PDF) | **~86%** |
 
 <p float="left"> <img src="pc/static/accuracy_chart.png" width="45%" /> <img src="pc/static/loss_chart.png" width="45%" /> </p>
 
-### 2. Giao diện người dùng
-(/pc/static/System.png)
+Số liệu accuracy này đo trên ảnh Kaggle (`pc/dataset`), **chưa phản ánh** hiệu năng thật trên ảnh chụp từ
+camera OV2640 (xem rủi ro domain shift ở mục cài đặt bước 3) và **chưa đo được FPS/latency thật** vì chưa có
+board ESP32-S3-CAM để flash — cần cập nhật lại các số liệu này sau khi có phần cứng.
+
+---
+
+## 🕰️ Lịch sử kiến trúc
+
+- **v1** (đã nộp báo cáo): PC chạy webcam + TensorFlow Lite, gửi kết quả cho ESP32 tự host web server. Xem git tag `v1-pc-server-esp32-display`, thư mục `pc/legacy_v1/` và `esp32/legacy_v1/`.
+- **v2** (hiện tại): Edge AI on-device trên ESP32-S3-CAM, PC làm server trung tâm.
 
 👨‍💻 Liên hệ
 Nguyễn Đào Nam Hải

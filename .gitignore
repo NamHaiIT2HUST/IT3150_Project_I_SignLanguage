@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# Dữ liệu ảnh có thể tái tạo lại từ script (prepare_dataset.py / collect_calibration_set.py)
+# thay vì lưu trong git — pc/dataset và pc/raw_data hiện đã được commit từ trước khi có file
+# này, cân nhắc `git rm -r --cached pc/dataset pc/raw_data` nếu muốn dọn sạch lịch sử.
+pc/dataset_calibration/
+
+# Build artifacts của Arduino IDE
+esp32/**/build/
